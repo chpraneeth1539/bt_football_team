@@ -1,16 +1,15 @@
 # bt_football_team
 
-A new Flutter project.
+BT Football stats - a Flutter Application
 
-## Getting Started
+**#Info**
+- The selected league/competition is "Premier League"
+- The teams that have won most number of matches are listed on the home page.
+- Since we are considering only the number of matches "WON" we are ignoring the "DRAW" case.
+- All the matches which were rescheduled / Postponed / cancelled are ignored and only the matches that has status as "FINISHED" are considered.
+- There can be mroe than one team that has won same number of matches, hence we have used a list view to list all such teams.
 
-This project is a starting point for a Flutter application.
+Thanks
+Praneeth Chintakindi
 
-A few resources to get you started if this is your first Flutter project:
 
-- [Lab: Write your first Flutter app](https://flutter.dev/docs/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://flutter.dev/docs/cookbook)
-
-For help getting started with Flutter, view our
-[online documentation](https://flutter.dev/docs), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
