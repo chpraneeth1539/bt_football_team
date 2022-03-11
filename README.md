@@ -2,7 +2,7 @@
 
 BT Football stats - a Flutter Application
 
-**#Info**
+**Info**
 - The selected league/competition is "Premier League"
 - The teams that have won most number of matches are listed on the home page.
 - Since we are considering only the number of matches "WON" we are ignoring the "DRAW" case.
