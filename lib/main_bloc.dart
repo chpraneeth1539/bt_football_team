@@ -1,7 +1,8 @@
 import 'dart:async';
 
-import 'package:bt_football_team/data_manager.dart';
+import 'package:bt_football_team/constants.dart';
 
+import 'data_manager.dart';
 import 'models.dart';
 
 enum Event { streamDate, streamData }
@@ -36,13 +37,21 @@ class MainBloc {
   MainBloc() {
     allTeams = {};
     dateRange = {};
+
     eventStream.listen((Event event) async {
-      if (event == Event.streamData) {
-        allTeams = await DataManager().generateMostWonTeams();
-        teamsWonSink.add(allTeams);
-      } else {
-        dateRange = DataManager().getDateRange();
-        dateSink.add(dateRange);
+      switch (event) {
+        case Event.streamData:
+          try {
+            allTeams = await DataManager().generateMostWonTeams();
+            teamsWonSink.add(allTeams);
+          } catch (e) {
+            teamsWonSink.addError(e);
+          }
+          break;
+        case Event.streamDate:
+          dateRange = DataManager().getDateRange(NO_OF_DAYS);
+          dateSink.add(dateRange);
+          break;
       }
     });
   }

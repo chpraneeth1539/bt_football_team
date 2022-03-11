@@ -22,8 +22,8 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    mainBloc.eventSink.add(Event.streamDate);
     mainBloc.eventSink.add(Event.streamData);
+    mainBloc.eventSink.add(Event.streamDate);
   }
 
   @override
@@ -89,6 +89,8 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         );
 
+    errorMessage(String message) => Column(mainAxisAlignment: MainAxisAlignment.center, children: [const SpinKitCircle(color: Colors.black, size: 60.0), Text(message)]);
+
     return Scaffold(
         appBar: AppBar(
           title: Text(widget.title),
@@ -98,16 +100,18 @@ class _MyHomePageState extends State<MyHomePage> {
               preferredSize: const Size.fromHeight(30.0),
               child: Column(
                 children: [
-                  Text('Teams won most matches in last 30 days', textAlign: TextAlign.start, style: TextStyle(color: Colors.white, fontSize: 14)),
+                  const Text('Teams won most matches in last 30 days', textAlign: TextAlign.start, style: const TextStyle(color: Colors.white, fontSize: 14)),
                   StreamBuilder<Map<String, String>>(
                       stream: mainBloc.dateStream,
                       builder: (context, AsyncSnapshot<Map<String, String>> snapshot) {
                         if (snapshot.hasData) {
-                          return Text('${snapshot.data!["dateFrom"]} to ${snapshot.data!["dateTo"]}', textAlign: TextAlign.start, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500));
+                          return Text('${snapshot.data!["dateFrom"]} to ${snapshot.data!["dateTo"]}', textAlign: TextAlign.start, style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500));
+                        } else if (snapshot.hasError) {
+                          return errorMessage('Error: ${snapshot.error}');
                         }
                         return const Text('');
                       }),
-                  SizedBox(height: 5)
+                  const SizedBox(height: 5)
                 ],
               )),
         ),
@@ -120,22 +124,24 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: StreamBuilder<Map<Team, int>>(
                     stream: mainBloc.teamsWonStream,
                     builder: (context, AsyncSnapshot<Map<Team, int>> snapshot) {
-                      if (snapshot.hasError) Text('Error: ${snapshot.error}');
-                      switch (snapshot.connectionState) {
-                        case ConnectionState.waiting:
-                          return const SpinKitCircle(color: Colors.black, size: 60.0);
-                        default:
-                          Map<Team, int> allTeams = snapshot.data!;
-                          List<Team> teamsWon = allTeams.keys.toList();
-                          List<int> teamsScore = allTeams.values.toList();
-                          return ListView.builder(
-                              shrinkWrap: true,
-                              scrollDirection: Axis.vertical,
-                              itemCount: allTeams.length,
-                              itemBuilder: (context, index) {
-                                return teamWidget(teamsWon[index], teamsScore[index]);
-                              });
+                      if (snapshot.hasData) {
+                        Map<Team, int> allTeams = snapshot.data!;
+                        List<Team> teamsWon = allTeams.keys.toList();
+                        List<int> teamsScore = allTeams.values.toList();
+                        if (allTeams.isEmpty) {
+                          return Center(child: const Text("Winning teams cannot be decided"));
+                        }
+                        return ListView.builder(
+                            shrinkWrap: true,
+                            scrollDirection: Axis.vertical,
+                            itemCount: allTeams.length,
+                            itemBuilder: (context, index) {
+                              return teamWidget(teamsWon[index], teamsScore[index]);
+                            });
+                      } else if (snapshot.hasError) {
+                        return errorMessage('Error: ${snapshot.error}');
                       }
+                      return errorMessage('Loading');
                     }),
               ),
               refreshButton(),

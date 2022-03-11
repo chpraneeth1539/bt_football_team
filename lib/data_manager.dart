@@ -1,35 +1,35 @@
-import 'dart:convert';
-
 import 'api_manager.dart';
 import 'models.dart';
 
 class DataManager {
   //Gets the from and to dates
-  Map<String, String> getDateRange() {
+  Map<String, String> getDateRange(int noOfDays) {
     var timeStamp = DateTime.now(); //Get current date
     String toDate = timeStamp.toString().split(" ")[0];
-    String fromDate = DateTime(timeStamp.year, timeStamp.month, timeStamp.day - 30).toString().split(" ")[0];
-
+    String fromDate = DateTime(timeStamp.year, timeStamp.month, timeStamp.day - noOfDays).toString().split(" ")[0];
     return {"dateTo": toDate, "dateFrom": fromDate};
   }
 
   // Sets all teams returns a map with key:value->TeamID:Team
   Future<Map<int, Team>> setTeams() async {
-    final teamsData = await ApiManager().getTeams();
-    List allTeamsData = json.decode(teamsData)["teams"];
-
-    //Generating TeamID:Team instance
-    Map<int, Team> teams = {};
-    for (var element in allTeamsData) {
-      teams[element["id"]] = Team.from(element);
+    List allTeamsData = await ApiManager().getTeams();
+    Map<int, Team> allTeamsMap = {};
+    if (allTeamsData.isNotEmpty) {
+      //Generating TeamID:Team instance
+      for (var element in allTeamsData) {
+        allTeamsMap[element["id"]] = Team.from(element);
+      }
     }
-    return teams;
+    return allTeamsMap;
   }
 
   // Sets list of winner TeamIDs in matches
   Future<List<int>> setWinnerIDs() async {
     final matchesData = await ApiManager().getMatches();
-    List<int> matches = List<int>.from(json.decode(matchesData)["matches"].map((eachMatch) => Match.from(eachMatch).winnerTeamID));
+    List<int> matches = [];
+    if (matchesData != null) {
+      matches = List<int>.from(matchesData.map((eachMatch) => Match.from(eachMatch).winnerTeamID));
+    }
     return matches;
   }
 
@@ -38,21 +38,21 @@ class DataManager {
     Map<int, List<int>> winnerTeamIDs = {};
     Map<Team, int> mostWonTeams = {};
     int maxScore = 0;
-
     //Generating #wins:List of teamIDs having same number of wins.
     teamsAndItsScores.forEach((key, value) {
       if (maxScore < value) {
         maxScore = value;
       }
-      if (winnerTeamIDs.containsKey(value) && winnerTeamIDs[value] != null) {
-        winnerTeamIDs[value]?.add(key);
-      } else {
-        winnerTeamIDs[value] = [key];
-      }
+      List<int> temp = winnerTeamIDs[value] ?? [];
+      temp.add(key);
+      winnerTeamIDs[value] = temp;
     });
 
     // Generating Team object for each team ID with maxScore.
     Map<int, Team> allTeamsInLeague = await setTeams();
+    if (allTeamsInLeague.keys.isEmpty) {
+      return {};
+    }
     winnerTeamIDs[maxScore]?.forEach((element) {
       mostWonTeams[allTeamsInLeague[element]!] = maxScore;
     });
@@ -62,17 +62,16 @@ class DataManager {
 
   Future<Map<Team, int>> generateMostWonTeams() async {
     List<int> winnerTeamIDs = await setWinnerIDs();
-
     //Generating TeamID: #wins
     Map<int, int> teamsAndItsScores = {};
-    for (var eachWinnerTeamID in winnerTeamIDs) {
-      if (teamsAndItsScores.containsKey(eachWinnerTeamID) && teamsAndItsScores[eachWinnerTeamID] != null) {
-        teamsAndItsScores[eachWinnerTeamID] = teamsAndItsScores[eachWinnerTeamID]! + 1;
-      } else {
-        teamsAndItsScores[eachWinnerTeamID] = 1;
-      }
+    if (winnerTeamIDs.isEmpty) {
+      return {};
     }
-    teamsAndItsScores.remove(0); //Excludes matches that has score -> winner as DRAW
+    for (var eachWinnerTeamID in winnerTeamIDs) {
+      int temp = (teamsAndItsScores[eachWinnerTeamID] ?? 0);
+      teamsAndItsScores[eachWinnerTeamID] = temp + 1;
+    }
+    teamsAndItsScores.remove(0); //Excludes matches that are DRAWN
 
     return findMaxWonTeams(teamsAndItsScores);
   }
