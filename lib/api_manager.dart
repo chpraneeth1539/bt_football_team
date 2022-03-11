@@ -4,17 +4,17 @@ import 'package:http/http.dart' as http;
 import 'constants.dart';
 
 class ApiManager {
-  // Gets all teams
+  // Gets all teams participating in Premier League
   Future<dynamic> getTeams() async {
-    final Uri url = Uri.parse(base_url + 'teams/');
+    final Uri url = Uri.parse(BASE_URL + 'teams/');
     var response = await http.get(url, headers: {'X-Auth-Token': AUTH_TOKEN});
     return response.body;
   }
 
-  // Gets all matches
+  // Gets all matches that are finished within date range
   Future<dynamic> getMatches() async {
-    Map<String, String> dateRange = DataManager().getDateRange();
-    final Uri url = Uri.parse(base_url + 'matches/?' + "dateFrom=" + dateRange["dateFrom"]! + "&" + "dateTo=" + dateRange["dateTo"]!);
+    Map<String, String> dateFromDateToMap = DataManager().getDateRange();
+    final Uri url = Uri.parse(BASE_URL + 'matches/?status=FINISHED&' + "dateFrom=" + dateFromDateToMap["dateFrom"]! + "&" + "dateTo=" + dateFromDateToMap["dateTo"]!);
     var response = await http.get(url, headers: {'X-Auth-Token': AUTH_TOKEN});
     return response.body;
   }

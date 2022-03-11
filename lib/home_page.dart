@@ -1,6 +1,9 @@
 import 'package:bt_football_team/main_bloc.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_spinkit/flutter_spinkit.dart';
+import 'package:flutter_svg/svg.dart';
 
 import 'models.dart';
 
@@ -34,19 +37,24 @@ class _MyHomePageState extends State<MyHomePage> {
     var screenWidth = MediaQuery.of(context).size.width;
 
     imageContainer({required String imageURL}) => Container(
-        width: screenWidth * 0.30,
-        height: screenWidth * 0.30,
-        alignment: Alignment.center,
-        child: Image.network(imageURL, loadingBuilder: (BuildContext context, Widget child, ImageChunkEvent? loadingProgress) {
-          if (loadingProgress == null) return child;
-          return Center(
-            child: CircularProgressIndicator(
-              value: loadingProgress.expectedTotalBytes != null ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes! : null,
-            ),
-          );
-        }));
+          width: screenWidth * 0.30,
+          height: screenWidth * 0.30,
+          alignment: Alignment.center,
+          child: (imageURL.endsWith('svg'))
+              ? SvgPicture.network(
+                  imageURL,
+                  placeholderBuilder: (BuildContext context) => const SpinKitCircle(color: Colors.black, size: 40.0),
+                )
+              : CachedNetworkImage(
+                  imageUrl: imageURL,
+                  width: double.infinity,
+                  fit: BoxFit.cover,
+                  placeholder: (context, url) => const SpinKitCircle(color: Colors.black, size: 40.0),
+                  errorWidget: (context, url, error) => const Text('Error loading image'),
+                ),
+        );
 
-    teamWidget(Team eachTeam, Score teamScore) => Container(
+    teamWidget(Team eachTeam, int teamScore) => Container(
           color: Colors.white,
           padding: const EdgeInsets.all(15),
           child: Row(
@@ -59,13 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     Text(eachTeam.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
                     Text(eachTeam.address),
-                    Row(
-                      children: [
-                        Text('Won: ${teamScore.won}'),
-                        SizedBox(width: 20),
-                        Text('Drawn: ${teamScore.drawn}'),
-                      ],
-                    ),
+                    Text('Won: ${teamScore}'),
                   ],
                 ),
               ),
@@ -81,7 +83,6 @@ class _MyHomePageState extends State<MyHomePage> {
           child: RawMaterialButton(
             child: const Text('Tap to refresh', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w500, fontSize: 18)),
             onPressed: () {
-              // dateRange = NetworkClient().getDateRange();
               mainBloc.eventSink.add(Event.streamData);
               mainBloc.eventSink.add(Event.streamDate);
             },
@@ -89,55 +90,57 @@ class _MyHomePageState extends State<MyHomePage> {
         );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.title),
-        backgroundColor: Colors.deepPurple,
-        elevation: 0,
-        bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(30.0),
-            child: Column(
-              children: [
-                Text('Teams won most matches in last 30 days', textAlign: TextAlign.start, style: TextStyle(color: Colors.white, fontSize: 14)),
-                StreamBuilder<Map<String, String>>(
-                    stream: mainBloc.dateStream,
-                    builder: (context, AsyncSnapshot<Map<String, String>> snapshot) {
-                      if (snapshot.hasData) {
-                        return Text('${snapshot.data!["dateFrom"]} to ${snapshot.data!["dateTo"]}', textAlign: TextAlign.start, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500));
-                      }
-                      return const Text('');
-                    }),
-                SizedBox(height: 5)
-              ],
-            )),
-      ),
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            Expanded(
-              child: StreamBuilder<Map<Team, Score>>(
-                  stream: mainBloc.teamsWonStream,
-                  builder: (context, AsyncSnapshot<Map<Team, Score>> snapshot) {
-                    if (snapshot.hasData) {
-                      Map<Team, Score> allTeams = snapshot.data!;
-                      List<Team> teamsWon = allTeams.keys.toList();
-                      List<Score> teamsScore = allTeams.values.toList();
-                      return ListView.builder(
-                          shrinkWrap: true,
-                          scrollDirection: Axis.vertical,
-                          itemCount: allTeams.length,
-                          itemBuilder: (context, index) {
-                            return teamWidget(teamsWon[index], teamsScore[index]);
-                          });
-                    }
-                    return const Text('');
-                  }),
-            ),
-            refreshButton(),
-          ],
+        appBar: AppBar(
+          title: Text(widget.title),
+          backgroundColor: Colors.deepPurple,
+          elevation: 0,
+          bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(30.0),
+              child: Column(
+                children: [
+                  Text('Teams won most matches in last 30 days', textAlign: TextAlign.start, style: TextStyle(color: Colors.white, fontSize: 14)),
+                  StreamBuilder<Map<String, String>>(
+                      stream: mainBloc.dateStream,
+                      builder: (context, AsyncSnapshot<Map<String, String>> snapshot) {
+                        if (snapshot.hasData) {
+                          return Text('${snapshot.data!["dateFrom"]} to ${snapshot.data!["dateTo"]}', textAlign: TextAlign.start, style: TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.w500));
+                        }
+                        return const Text('');
+                      }),
+                  SizedBox(height: 5)
+                ],
+              )),
         ),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+        backgroundColor: Colors.white,
+        body: SafeArea(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              Expanded(
+                child: StreamBuilder<Map<Team, int>>(
+                    stream: mainBloc.teamsWonStream,
+                    builder: (context, AsyncSnapshot<Map<Team, int>> snapshot) {
+                      if (snapshot.hasError) Text('Error: ${snapshot.error}');
+                      switch (snapshot.connectionState) {
+                        case ConnectionState.waiting:
+                          return const SpinKitCircle(color: Colors.black, size: 60.0);
+                        default:
+                          Map<Team, int> allTeams = snapshot.data!;
+                          List<Team> teamsWon = allTeams.keys.toList();
+                          List<int> teamsScore = allTeams.values.toList();
+                          return ListView.builder(
+                              shrinkWrap: true,
+                              scrollDirection: Axis.vertical,
+                              itemCount: allTeams.length,
+                              itemBuilder: (context, index) {
+                                return teamWidget(teamsWon[index], teamsScore[index]);
+                              });
+                      }
+                    }),
+              ),
+              refreshButton(),
+            ],
+          ),
+        ));
   }
 }

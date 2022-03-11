@@ -13,30 +13,13 @@ class Team {
         address = data["address"];
 }
 
-enum winner { HOME_TEAM, AWAY_TEAM, DRAW }
-
 class Match {
   int id = 0;
-  int homeTeamID = 0;
-  int awayTeamID = 0;
-  winner winnerTeam;
+  int winnerTeamID;
 
-  Match({required this.awayTeamID, required this.homeTeamID, required this.winnerTeam});
+  Match({required this.winnerTeamID});
 
   Match.from(Map<String, dynamic> data)
       : id = data["id"],
-        homeTeamID = data["homeTeam"]["id"],
-        awayTeamID = data["awayTeam"]["id"],
-        winnerTeam = data["score"]["winner"] == "HOME_TEAM" ? winner.HOME_TEAM : (data["score"]["winner"] == "AWAY_TEAM" ? winner.AWAY_TEAM : winner.DRAW);
-}
-
-class Score {
-  int won = 0;
-  int drawn = 0;
-
-  Score({required this.won, required this.drawn});
-
-  Score.from(Map<String, dynamic> data)
-      : won = data["won"],
-        drawn = data["drawn"];
+        winnerTeamID = data["score"]["winner"] == "HOME_TEAM" ? data["homeTeam"]["id"] : ((data["score"]["winner"] == "AWAY_TEAM") ? data["awayTeam"]["id"] : 0); //assigning winner team id of the match
 }
