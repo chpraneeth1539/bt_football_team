@@ -2,6 +2,7 @@ import 'package:bt_football_team/main_bloc.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/painting.dart';
 import 'package:flutter_spinkit/flutter_spinkit.dart';
 import 'package:flutter_svg/svg.dart';
 
@@ -55,8 +56,8 @@ class _MyHomePageState extends State<MyHomePage> {
         );
 
     teamWidget(Team eachTeam, int teamScore) => Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
           color: Colors.white,
-          padding: const EdgeInsets.all(15),
           child: Row(
             children: [
               imageContainer(imageURL: eachTeam.crestUrl),
@@ -67,7 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   children: [
                     Text(eachTeam.name, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.w700)),
                     Text(eachTeam.address),
-                    Text('Won: ${teamScore}'),
+                    Text('Won: $teamScore'),
                   ],
                 ),
               ),
@@ -94,6 +95,7 @@ class _MyHomePageState extends State<MyHomePage> {
     return Scaffold(
         appBar: AppBar(
           title: Text(widget.title),
+          centerTitle: true,
           backgroundColor: Colors.deepPurple,
           elevation: 0,
           bottom: PreferredSize(
@@ -117,35 +119,39 @@ class _MyHomePageState extends State<MyHomePage> {
         ),
         backgroundColor: Colors.white,
         body: SafeArea(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: [
-              Expanded(
-                child: StreamBuilder<Map<Team, int>>(
-                    stream: mainBloc.teamsWonStream,
-                    builder: (context, AsyncSnapshot<Map<Team, int>> snapshot) {
-                      if (snapshot.hasData) {
-                        Map<Team, int> allTeams = snapshot.data!;
-                        List<Team> teamsWon = allTeams.keys.toList();
-                        List<int> teamsScore = allTeams.values.toList();
-                        if (allTeams.isEmpty) {
-                          return Center(child: const Text("Winning teams cannot be decided"));
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 10),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: [
+                const SizedBox(height: 10),
+                Expanded(
+                  child: StreamBuilder<Map<Team, int>>(
+                      stream: mainBloc.teamsWonStream,
+                      builder: (context, AsyncSnapshot<Map<Team, int>> snapshot) {
+                        if (snapshot.hasData) {
+                          Map<Team, int> allTeams = snapshot.data!;
+                          List<Team> teamsWon = allTeams.keys.toList();
+                          List<int> teamsScore = allTeams.values.toList();
+                          if (allTeams.isEmpty) {
+                            return const Center(child: Text("Winning teams cannot be decided"));
+                          }
+                          return ListView.builder(
+                              shrinkWrap: true,
+                              scrollDirection: Axis.vertical,
+                              itemCount: allTeams.length,
+                              itemBuilder: (context, index) {
+                                return teamWidget(teamsWon[index], teamsScore[index]);
+                              });
+                        } else if (snapshot.hasError) {
+                          return errorMessage('Error: ${snapshot.error}');
                         }
-                        return ListView.builder(
-                            shrinkWrap: true,
-                            scrollDirection: Axis.vertical,
-                            itemCount: allTeams.length,
-                            itemBuilder: (context, index) {
-                              return teamWidget(teamsWon[index], teamsScore[index]);
-                            });
-                      } else if (snapshot.hasError) {
-                        return errorMessage('Error: ${snapshot.error}');
-                      }
-                      return errorMessage('Loading');
-                    }),
-              ),
-              refreshButton(),
-            ],
+                        return errorMessage('Loading');
+                      }),
+                ),
+                refreshButton(),
+              ],
+            ),
           ),
         ));
   }
